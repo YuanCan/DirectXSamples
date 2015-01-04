@@ -9,6 +9,8 @@ public:
 	D3DPRESENT_PARAMETERS d3dpp;
 	int windowWidth;
 	int windowHeight;
+	LPDIRECT3DVERTEXBUFFER9 Vb;
+	LPDIRECT3DINDEXBUFFER9 Ib;
 
 	~ Direct3DDevice(); 
 
@@ -18,8 +20,8 @@ public:
 	int CheckDeviceCap();
 	void InitPresentParamater(HWND window,bool windowed,int windowWidth,int windowHeight);
 	void InitRenderPara();
-	void RenderTarget(LPDIRECT3DVERTEXBUFFER9 vertexBuffer,LPDIRECT3DINDEXBUFFER9 indexBuffer);
-	void InitGeometry(LPDIRECT3DVERTEXBUFFER9  vb,LPDIRECT3DINDEXBUFFER9 ib);
+	void RenderTarget();
+	HRESULT InitGeometry();
 	void RenderTutorial();
 private:
 	IDirect3D9 *_d3d9;
@@ -33,16 +35,14 @@ private:
 typedef struct VERTEX
 {
 	~VERTEX(){}
-	VERTEX(float x,float y,float z,DWORD color)
+	VERTEX(float x,float y,float z)
 	{
 		_x = x;
 		_y = y;
 		_z = z;
-		_color = color;
 
 	}
 	FLOAT _x, _y, _z; // The transformed position for the vertex.
-	DWORD _color;        // The vertex color.
 
 	const static DWORD FVF;
 }Vertex,PVertex;

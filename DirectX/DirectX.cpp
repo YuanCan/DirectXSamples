@@ -10,9 +10,6 @@
 #pragma warning( default : 4996 )
 #pragma comment(lib, "dxerr.lib")
 
-LPDIRECT3DVERTEXBUFFER9 Vb;
-LPDIRECT3DINDEXBUFFER9 Ib;
-
 //-----------------------------------------------------------------------------
 // Name: MsgProc()
 // Desc: The window's message handler
@@ -67,7 +64,7 @@ INT WINAPI wWinMain( HINSTANCE hInst, HINSTANCE, LPWSTR, INT )
 		ShowWindow( hWnd, SW_SHOWDEFAULT );
 		UpdateWindow( hWnd );
 		Direct3DDevice::GetInstance()->InitRenderPara();
-		Direct3DDevice::GetInstance()->InitGeometry(Vb,Ib);
+		Direct3DDevice::GetInstance()->InitGeometry();
 		// Enter the message loop
 		MSG msg;
 		ZeroMemory( &msg, sizeof( msg ) );
@@ -80,23 +77,13 @@ INT WINAPI wWinMain( HINSTANCE hInst, HINSTANCE, LPWSTR, INT )
 			}
 			else
 			{
-				Direct3DDevice::GetInstance()->RenderTarget(Vb,Ib);
+				Direct3DDevice::GetInstance()->RenderTarget();
 			}
 		}
 	}
 	else
 	{
 		//MessageBoxA(NULL,DXGetErrorDescriptionA(result),"Error",MB_OK);
-	}
-	if(Vb)
-	{
-		Vb->Release();
-		Vb = NULL;
-	}
-	if(Ib)
-	{
-		Ib->Release();
-		Ib = NULL;
 	}
 	Direct3DDevice::GetInstance()->DestroyInstance();
 	UnregisterClass( L"D3D Tutorial", wc.hInstance );

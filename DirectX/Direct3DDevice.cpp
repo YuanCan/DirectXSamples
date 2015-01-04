@@ -2,7 +2,7 @@
 #include "stdafx.h"
 #include "Direct3DDevice.h"
 Direct3DDevice * Direct3DDevice::Instance = NULL;
-const DWORD Vertex::FVF = D3DFVF_XYZ | D3DFVF_DIFFUSE;
+const DWORD Vertex::FVF = D3DFVF_XYZ;
 
 Direct3DDevice * Direct3DDevice::GetInstance()
 {
@@ -27,6 +27,17 @@ Direct3DDevice :: Direct3DDevice()
 
 Direct3DDevice::~Direct3DDevice()
 {
+	if(Vb)
+	{
+		Vb->Release();
+		Vb = NULL;
+	}
+	if(Ib)
+	{
+		Ib->Release();
+		Ib = NULL;
+	}
+
 	if(device)
 	{
 		device->Release();
@@ -106,50 +117,54 @@ void Direct3DDevice :: InitRenderPara()
 	device->SetRenderState(D3DRS_FILLMODE,D3DFILL_WIREFRAME);
 }
 
-void Direct3DDevice::RenderTarget(LPDIRECT3DVERTEXBUFFER9 vertexBuffer,LPDIRECT3DINDEXBUFFER9 indexBuffer)
+void Direct3DDevice::RenderTarget()
 {
-	if(device == NULL)
+	if(device == NULL || Vb == NULL || Ib == NULL)
 	{
 		return;
 	}
 
 	// clear render buffer
 	device->Clear(0,0,D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER,D3DCOLOR_XRGB(255,255,255),1.0f,0);
-	device->BeginScene();
-	device->SetFVF(Vertex::FVF);
-	device->SetStreamSource(0,vertexBuffer,0,sizeof(Vertex));
-	device->SetIndices(indexBuffer);
-	device->SetFVF(Vertex::FVF);
+	if(SUCCEEDED(device->BeginScene()))
+	{
+		device->SetStreamSource(0,Vb,0,sizeof(Vertex));
+		device->SetIndices(Ib);
+		device->SetFVF(Vertex::FVF);
 
-	// draw
-	device->DrawIndexedPrimitive(D3DPT_TRIANGLELIST,0,0,4,0,2);
+		// draw
+		device->DrawIndexedPrimitive(D3DPT_TRIANGLELIST,0,0,3,0,1);
+	}
 	device->EndScene();
 	device->Present(NULL,NULL,NULL,NULL);
 }
 
-void Direct3DDevice::InitGeometry(LPDIRECT3DVERTEXBUFFER9 vb,LPDIRECT3DINDEXBUFFER9 ib)
+HRESULT Direct3DDevice::InitGeometry()
 {
 	if(!device)
 	{
-		return;
+		return S_FALSE;
 	}
-	device->CreateVertexBuffer(4*sizeof(Vertex),D3DUSAGE_WRITEONLY,Vertex::FVF,D3DPOOL_DEFAULT,&vb,NULL);
-	device->CreateIndexBuffer(6*sizeof(WORD),D3DUSAGE_WRITEONLY,D3DFMT_INDEX16,D3DPOOL_DEFAULT,&ib,NULL);
+
+	device->CreateVertexBuffer(4*sizeof(Vertex),D3DUSAGE_WRITEONLY,Vertex::FVF,D3DPOOL_MANAGED,&Vb,NULL);
+	device->CreateIndexBuffer(6*sizeof(WORD),D3DUSAGE_WRITEONLY,D3DFMT_INDEX16,D3DPOOL_MANAGED,&Ib,NULL);
 
 	// fill the vertex buffer
 	Vertex * vertices;
-	vb->Lock(0,0,(void**)&vertices,0);
-	vertices[0] = Vertex(-1.0f,-1.0f,0.0f,D3DCOLOR_XRGB(255,255,0));
-	vertices[1] = Vertex(1.0f,1.0f,0.0f,D3DCOLOR_XRGB(255,255,0));
-	vertices[2] = Vertex(1.0f,-1.0f,0.0f,D3DCOLOR_XRGB(255,255,0));
-	vertices[3] = Vertex(-1.0f,1.0f,0.0f,D3DCOLOR_XRGB(255,255,0));
-	vb->Unlock();
+	Vb->Lock(0,0,(void**)&vertices,0);
+	vertices[0] = Vertex(-1.0f,-1.0f,0.0f);
+	vertices[1] = Vertex(0.0f,1.0f,0.0f);
+	vertices[2] = Vertex(1.0f,0.0f,0.0f);
+	vertices[3] = Vertex(-1.0f,1.0f,0.0f);
+	Vb->Unlock();
 
-	DWORD*indices;
-	ib->Lock(0,0,(void**)&indices,0);
+	WORD*indices;
+	Ib->Lock(0,0,(void**)&indices,0);
 	indices[0] = 0;indices[1] = 1;indices[2] = 2;
 	indices[3] = 0;indices[4] = 2;indices[5] = 3;
-	ib->Unlock();
+	Ib->Unlock();
+
+	return S_OK;
 }
 
 void Direct3DDevice::RenderTutorial()
