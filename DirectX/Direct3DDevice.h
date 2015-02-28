@@ -20,6 +20,7 @@ public:
 	int CheckDeviceCap();
 	void InitPresentParamater(HWND window,bool windowed,int windowWidth,int windowHeight);
 	void InitRenderPara();
+	void Direct3DDevice::ResetRenderPara(int windowWidth,int windowHeight);
 	void RenderTarget();
 	HRESULT InitGeometry();
 	void RenderTutorial();

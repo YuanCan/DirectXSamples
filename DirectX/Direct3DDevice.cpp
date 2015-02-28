@@ -117,6 +117,11 @@ void Direct3DDevice :: InitRenderPara()
 	device->SetRenderState(D3DRS_FILLMODE,D3DFILL_WIREFRAME);
 }
 
+void Direct3DDevice::ResetRenderPara(int windowWidth,int windowHeight)
+{
+
+}
+
 void Direct3DDevice::RenderTarget()
 {
 	if(device == NULL || Vb == NULL || Ib == NULL)
