@@ -14,6 +14,7 @@
 
 
 #define  IDD_COMBOBOX 100
+#define  ID_RENDER_TIMER 100
 
 VideoCapture captureInstance;
 // Main window handler
@@ -26,11 +27,26 @@ HINSTANCE instance;
 
 int userWindowWidth,userWindowHeight;
 
-#define  DEFAULT_WINDOW_WIDTH 1400
+#define  DEFAULT_WINDOW_WIDTH 1440
 #define  DEFAULT_WINDOW_HEIGHT 900
 #define  DEFAULT_CONTROL_HEIGHT 100
 void CreateComboBox(HWND parent,HINSTANCE instance);
 
+// Here you get image video data in buf / len. Process it before calling Receive_ because renderer dealocates it.
+ HRESULT ( __stdcall * Receive_ ) ( void* inst, IMediaSample *smp ) ; 
+
+ HRESULT   __stdcall   Receive    ( void* inst, IMediaSample *smp ) {  
+	 
+	BYTE * buffer;
+	DWORD dataLength;
+	smp->GetPointer(&buffer); 
+	dataLength = smp->GetActualDataLength();
+ 	captureInstance.ReceiveData(buffer,dataLength);
+	HRESULT   ret  =  Receive_  ( inst, smp );   
+	return    ret; 
+}
+#define DS_HOOK(a,b,c) if (!c##_) { INT_PTR* p=b+*(INT_PTR**)a;   VirtualProtect(&c##_,4,PAGE_EXECUTE_READWRITE,&no);\
+	*(INT_PTR*)&c##_=*p;   VirtualProtect(p,    4,PAGE_EXECUTE_READWRITE,&no);   *p=(INT_PTR)c; }
 //-----------------------------------------------------------------------------
 // Name: MsgProc()
 // Desc: The window's message handler
@@ -41,14 +57,26 @@ LRESULT WINAPI MsgProc( HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam )
 	int count;
 	static HWND hwndList;
 	int width,height;
+	HDC hdc;
+	PAINTSTRUCT ps;
 	switch( msg )
 	{
+	case  WM_CREATE:
+		return 0;
 	case WM_GRAPHNOTIFY:
 		captureInstance.HandleGraphEvent();
 		return 0;
 	case WM_SETFOCUS:
 		SetFocus(hwndList);
 		return 0;
+	case WM_PAINT:
+		{
+			//get the hdc
+			//hdc = GetDC(hwnd);
+			//ReleaseDC(hwnd,hdc);
+			return 0;
+		}
+		break;
 	case  WM_COMMAND:
 
 		if(HIWORD(wParam) == CBN_SELCHANGE)
@@ -62,19 +90,23 @@ LRESULT WINAPI MsgProc( HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam )
 			TCHAR  ListItem[256];
 			(TCHAR) SendMessage((HWND) lParam, (UINT) CB_GETLBTEXT, 
 				(WPARAM) ItemIndex, (LPARAM) ListItem);
-			captureInstance.BindDevice((LPCWSTR)ListItem);                    
+			captureInstance.BindDevice((LPCWSTR)ListItem);  
+			DWORD no;
+			// Redirect Data 
+			DS_HOOK(captureInstance.pOutMemPin,6,Receive);
+			captureInstance.ChangePreviewState(1);	// run the preview				
 		}
 		return 0;
 	case WM_SIZE:
-		InvalidateRect(hwnd, NULL,TRUE);
-		RECT rc;
-		// Make the preview video fill our window
-		GetClientRect(hWnd, &rc);
-		width = rc.right - rc.left;
-		height = rc.bottom - rc.top;
-		SetWindowPos(directXWindow,NULL,rc.left,rc.top + DEFAULT_CONTROL_HEIGHT,width >> 1,height - DEFAULT_CONTROL_HEIGHT,TRUE);
-		SetWindowPos(videoWindow,NULL,rc.left + (width >>1),rc.top + DEFAULT_CONTROL_HEIGHT,width >> 1,height - DEFAULT_CONTROL_HEIGHT,TRUE);
-		captureInstance.ResizeVideoWindow();
+// 		InvalidateRect(hwnd, NULL,TRUE);
+// 		RECT rc;
+// 		// Make the preview video fill our window
+// 		GetClientRect(hWnd, &rc);
+// 		width = rc.right - rc.left;
+// 		height = rc.bottom - rc.top;
+// 		SetWindowPos(directXWindow,NULL,rc.left,rc.top + DEFAULT_CONTROL_HEIGHT,width >> 1,height - DEFAULT_CONTROL_HEIGHT,false);
+// 		SetWindowPos(videoWindow,NULL,rc.left + (width >>1),rc.top + DEFAULT_CONTROL_HEIGHT,width >> 1,height - DEFAULT_CONTROL_HEIGHT,false);
+// 		captureInstance.ResizeVideoWindow();
 		return 0;
 
 	case WM_WINDOWPOSCHANGED:
@@ -133,6 +165,7 @@ INT WINAPI wWinMain( HINSTANCE hInst, HINSTANCE, LPWSTR, INT )
 		MessageBoxW(hWnd,captureInstance.m_errorMessage,L"Video capture",S_OK);
 		return 0;
 	}
+
 	HRESULT result = Direct3DDevice::GetInstance()->CreateDevice(directXWindow,TRUE,DEFAULT_WINDOW_WIDTH >> 1, DEFAULT_WINDOW_HEIGHT - DEFAULT_CONTROL_HEIGHT);
 	// Initialize Direct3D
 	if( SUCCEEDED(result))
@@ -141,8 +174,9 @@ INT WINAPI wWinMain( HINSTANCE hInst, HINSTANCE, LPWSTR, INT )
 		ShowWindow( hWnd, SW_SHOWDEFAULT );
 		UpdateWindow( hWnd );
 		CreateComboBox(hWnd,instance);
-		Direct3DDevice::GetInstance()->InitRenderPara();
-		Direct3DDevice::GetInstance()->InitGeometry();
+// 		Direct3DDevice::GetInstance()->InitRenderPara();
+// 		Direct3DDevice::GetInstance()->InitGeometry();
+		Direct3DDevice::GetInstance()->InitVideoCaptureModePara();
 		// Enter the message loop
 		MSG msg;
 		ZeroMemory( &msg, sizeof( msg ) );
@@ -155,7 +189,7 @@ INT WINAPI wWinMain( HINSTANCE hInst, HINSTANCE, LPWSTR, INT )
 			}
 			else
 			{
-				Direct3DDevice::GetInstance()->RenderTarget();
+				//Direct3DDevice::GetInstance()->RenderTarget();
 			}
 		}
 	}

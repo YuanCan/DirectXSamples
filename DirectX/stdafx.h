@@ -18,4 +18,7 @@
 #include <tchar.h>
 
 
+//  General interface release define
+#define SAFE_RELEASE(x) { if (x) x->Release(); x = NULL; }
+
 // TODO: reference additional headers your program requires here
